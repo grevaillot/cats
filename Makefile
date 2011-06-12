@@ -15,3 +15,8 @@ doc:
 clean:
 	rm -f cats
 	rm -rf doc/{latex,html}
+
+install: cats
+	install cats $(DESTDIR)/bin/cats
+
+
