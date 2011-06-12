@@ -211,18 +211,42 @@ serialOpen(const char *port, int baudrate) {
   case 57600: baud_sym = B57600; break;
   case 115200: baud_sym = B115200; break;
   case 230400: baud_sym = B230400; break;
+#ifdef B460800
   case 460800: baud_sym =  B460800; break;
+#endif
+#ifdef B500000
   case 500000: baud_sym =  B500000; break;
+#endif
+#ifdef B576000
   case 576000: baud_sym =  B576000; break;
+#endif
+#ifdef B921600
   case 921600: baud_sym =  B921600; break;
+#endif
+#ifdef B1000000
   case 1000000: baud_sym =  B1000000; break;
+#endif
+#ifdef B1152000
   case 1152000: baud_sym =  B1152000; break;
+#endif
+#ifdef B1500000
   case 1500000: baud_sym =  B1500000; break;
+#endif
+#ifdef B2000000
   case 2000000: baud_sym =  B2000000; break;
+#endif
+#ifdef B2500000
   case 2500000: baud_sym =  B2500000; break;
+#endif
+#ifdef B3000000
   case 3000000: baud_sym =  B3000000; break;
+#endif
+#ifdef B3500000
   case 3500000: baud_sym =  B3500000; break;
+#endif
+#ifdef B4000000
   case 4000000: baud_sym =  B4000000; break;
+#endif
   default: printf("Error : unsupported baud rate"); exit(EXIT_FAILURE);
   }
 
@@ -355,7 +379,7 @@ serialLoop(const char *serialPort, int baudRate) {
           for (i=0; i < bcount; i++) {
             if (linebreak && oLineTimings) {
               elapsedFromStart(&starttime, &elapsed);
-              printf("[%ld.%06ld]", elapsed.tv_sec, elapsed.tv_usec);
+              printf("[%ld.%06ld]", elapsed.tv_sec, (long int) elapsed.tv_usec);
             }
             linebreak = (data[i] == '\n' ? TRUE : FALSE);
             printf("%c", data[i]);
