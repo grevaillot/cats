@@ -39,6 +39,9 @@
 #define VERSION 1.0
 #define BAUD_DEFAULT B9600
 
+#define RESET_COLOR "\e[m"
+#define MAKE_GREEN "\e[32m"
+
 /** 
  * @brief Boolean type 
  *
@@ -402,7 +405,7 @@ serialLoop(const char *serialPort, int baudRate) {
           for (i=0; i < bcount; i++) {
             if (linebreak && oLineTimings) {
               elapsedFromStart(&starttime, &elapsed);
-              printf("[%ld.%06ld]", elapsed.tv_sec, (long int) elapsed.tv_usec);
+              printf( MAKE_GREEN "[%6ld.%06ld] " RESET_COLOR, elapsed.tv_sec, (long int) elapsed.tv_usec);
             }
 
             if (resetTimestampMatch(data[i]))
