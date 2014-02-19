@@ -6,7 +6,9 @@ CFLAGS= -Wall
 
 .PHONY: doc
 
-all:
+all: cats
+
+cats: src/cats.c
 	gcc $(CFLAGS) src/cats.c -o cats
 
 doc:
