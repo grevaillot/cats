@@ -274,6 +274,7 @@ usage(void)
   fprintf(stderr, "\t<port> : serial port (default : none\n");
   fprintf(stderr, "\t-b <rate> : serial baud rate (default : 9600)\n");
   fprintf(stderr, "\t-t : write timestamp in front on each line\n");
+  fprintf(stderr, "\r-T \"match\": setup timestamp reset trigger on string match\n");
   fprintf(stderr, "\t-g <0-7> : debug level (default : no debug, see sys/syslog.h for levels)\n");
   fprintf(stderr, "\n  Supported baud rates :\n");
   fprintf(stderr, "\t\t50 75 110 134 150 200 300 600 1200 1800\n");
@@ -314,6 +315,28 @@ elapsedFromStart (struct timeval *starttime, struct timeval *result) {
   return now.tv_sec < starttime->tv_sec;
 }
 
+char * pat = NULL;
+
+int
+resetTimestampMatch(unsigned char c){
+  static int i = 0;
+
+  if (pat == NULL)
+    return 0;
+
+  if (c == pat[i]) {
+    i++;
+
+    if (i == (strlen(pat) - 1))
+      return 1;
+
+  } else {
+    i = 0;
+  }
+
+  return 0;
+}
+
 /**
  * @brief Never ending handling loop
  *
@@ -343,7 +366,7 @@ serialLoop(const char *serialPort, int baudRate) {
   struct timeval starttime;
 
   fd = serialOpen(serialPort, baudRate);
-  
+
   /* Initialize the input set */
   FD_ZERO(&input);
 
@@ -352,13 +375,13 @@ serialLoop(const char *serialPort, int baudRate) {
   while (1) {
     FD_SET(fileno(stdin), &input); // stdin
     FD_SET(fd, &input);
-    
+
     max_fd = fd + 1;
-    
+
     /* Initialize the timeout structure */
     timeout.tv_sec  = 10;
     timeout.tv_usec = 0;
-    
+
     /* Do the select */
     n = select(max_fd, &input, NULL, NULL, &timeout);
 
@@ -381,6 +404,10 @@ serialLoop(const char *serialPort, int baudRate) {
               elapsedFromStart(&starttime, &elapsed);
               printf("[%ld.%06ld]", elapsed.tv_sec, (long int) elapsed.tv_usec);
             }
+
+            if (resetTimestampMatch(data[i]))
+              gettimeofday(&starttime, NULL);
+
             linebreak = (data[i] == '\n' ? TRUE : FALSE);
             printf("%c", data[i]);
             fflush(stdout);
@@ -408,9 +435,10 @@ main(int argc, char **argv)
 {
   char c;
   int  oSerialBaudRate = 0;
+  fprintf(stderr, "%s: %s %s\n", argv[0], __DATE__, __TIME__);
 
   /* thread stuff */
-  while ((c = getopt(argc, argv, "hg::b:t")) != -1 ) {
+  while ((c = getopt(argc, argv, "hg::b:tT:")) != -1 ) {
     debug(LOG_DEBUG, "handling option %c",c);
     switch (c) {
     case 'g':
@@ -421,6 +449,9 @@ main(int argc, char **argv)
       break;
     case 't':
       oLineTimings = TRUE;
+      break;
+    case 'T':
+      pat = optarg;
       break;
     case '?':
       if (isprint (optopt))
