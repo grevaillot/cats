@@ -33,6 +33,8 @@
 #include <sys/stat.h>
 #include <sys/time.h> 
 #include <sys/types.h>
+#include <time.h>
+
 #include <termios.h>
 #include <unistd.h>
 
@@ -40,6 +42,7 @@
 #define BAUD_DEFAULT B9600
 
 #define RESET_COLOR "\e[m"
+#define MAKE_RED "\e[31m"
 #define MAKE_GREEN "\e[32m"
 
 /** 
@@ -53,7 +56,7 @@
 #else
 #  ifdef boolean_t
 #    define FALSE 0
-#    define TRUE 1
+#    define TRUE 1 
 #  else
      typedef enum {FALSE, TRUE} boolean_t;
 #  endif
@@ -61,6 +64,7 @@
 
 int            oDebug = 2;
 boolean_t      oLineTimings = FALSE;
+boolean_t      oLineDate = FALSE;
 struct timeval oStartTime;
 
 /**
@@ -70,7 +74,7 @@ struct timeval oStartTime;
  * higher of equal to the threshold level specified at command line.
  * The level values can usualy be found in /usr/include/sys/syslog.h
  * @param level
- *  The level for this message
+ *  The level for this messaged
  * @param template
  *  A variable argument list containing printf style statements.
  * @sa /usr/include/sys/syslog.h
@@ -278,6 +282,7 @@ usage(void)
   fprintf(stderr, "\t-b <rate> : serial baud rate (default : 9600)\n");
   fprintf(stderr, "\t-t : write timestamp in front on each line\n");
   fprintf(stderr, "\r-T \"match\": setup timestamp reset trigger on string match\n");
+  fprintf(stderr, "\r-d : write date in front of each line\n");
   fprintf(stderr, "\t-g <0-7> : debug level (default : no debug, see sys/syslog.h for levels)\n");
   fprintf(stderr, "\n  Supported baud rates :\n");
   fprintf(stderr, "\t\t50 75 110 134 150 200 300 600 1200 1800\n");
@@ -367,6 +372,7 @@ serialLoop(const char *serialPort, int baudRate) {
   int            bcount;
   struct timeval elapsed;
   struct timeval starttime;
+  boolean_t     first_char = TRUE;
 
   fd = serialOpen(serialPort, baudRate);
 
@@ -403,7 +409,14 @@ serialLoop(const char *serialPort, int baudRate) {
 
         if ((bcount = read(fd, data, 1024))) {
           for (i=0; i < bcount; i++) {
-            if (linebreak && oLineTimings) {
+            if ((linebreak || first_char) && oLineDate) {
+              time_t t = time(NULL);
+              struct tm tm = *localtime(&t);
+              printf( MAKE_RED"[%02d:%02d:%02d] " RESET_COLOR, tm.tm_hour, tm.tm_min, tm.tm_sec);
+            }
+
+            if ((linebreak || first_char) && oLineTimings) {
+              first_char = FALSE;
               elapsedFromStart(&starttime, &elapsed);
               printf( MAKE_GREEN "[%6ld.%06ld] " RESET_COLOR, elapsed.tv_sec, (long int) elapsed.tv_usec);
             }
@@ -441,7 +454,7 @@ main(int argc, char **argv)
   fprintf(stderr, "%s: %s %s\n", argv[0], __DATE__, __TIME__);
 
   /* thread stuff */
-  while ((c = getopt(argc, argv, "hg::b:tT:")) != -1 ) {
+  while ((c = getopt(argc, argv, "hg::b:tT:d")) != -1 ) {
     debug(LOG_DEBUG, "handling option %c",c);
     switch (c) {
     case 'g':
@@ -452,6 +465,9 @@ main(int argc, char **argv)
       break;
     case 't':
       oLineTimings = TRUE;
+      break;
+    case 'd':
+      oLineDate= TRUE;
       break;
     case 'T':
       pat = optarg;
